@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全銀データ差分チェッカー - 総合振込</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .navigation {
+            background: #f8f9fa;
+            padding: 15px 30px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .navigation a {
+            color: #007bff;
+            text-decoration: none;
+            margin-right: 20px;
+            font-weight: 500;
+        }
+        
+        .navigation a:hover {
+            text-decoration: underline;
+        }
+        
+        .file-upload-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+        
+        .file-upload-card {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            border: 2px dashed #dee2e6;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .file-upload-card.has-file {
+            border-color: #28a745;
+            background: #f8fff9;
+        }
+        
+        .file-upload-card h3 {
+            margin-bottom: 15px;
+            color: #495057;
+        }
+        
+        .file-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            text-align: left;
+            display: none;
+        }
+        
+        .file-info.show {
+            display: block;
+        }
+        
+        .file-info p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #6c757d;
+        }
+        
+        .file-info strong {
+            color: #212529;
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            left: -9999px;
+        }
+        
+        .file-input-label {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #007bff;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-weight: 500;
+        }
+        
+        .file-input-label:hover {
+            background: #0056b3;
+        }
+        
+        .file-input-label.original {
+            background: #6c757d;
+        }
+        
+        .file-input-label.original:hover {
+            background: #5a6268;
+        }
+        
+        .file-input-label.modified {
+            background: #28a745;
+        }
+        
+        .file-input-label.modified:hover {
+            background: #218838;
+        }
+        
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+            font-size: 15px;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        
+        .btn-primary:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.65;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+        }
+        
+        .compare-controls {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        .diff-summary {
+            padding: 20px 30px;
+            background: #fff;
+            border-bottom: 1px solid #dee2e6;
+            display: none;
+        }
+        
+        .diff-summary.show {
+            display: block;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 15px;
+        }
+        
+        .summary-card {
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .summary-card.added {
+            background: #d4edda;
+            border-color: #c3e6cb;
+        }
+        
+        .summary-card.modified {
+            background: #fff3cd;
+            border-color: #ffeeba;
+        }
+        
+        .summary-card.deleted {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        
+        .summary-card.unchanged {
+            background: #f8f9fa;
+            border-color: #dee2e6;
+        }
+        
+        .summary-card h4 {
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+        
+        .summary-card .number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #212529;
+        }
+        
+        .diff-results {
+            padding: 30px;
+            display: none;
+        }
+        
+        .diff-results.show {
+            display: block;
+        }
+        
+        .diff-section {
+            margin-bottom: 30px;
+        }
+        
+        .diff-section h3 {
+            margin-bottom: 15px;
+            color: #212529;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        .diff-table {
+            width: 100%;
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        
+        thead {
+            background: #f8f9fa;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        th {
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+            white-space: nowrap;
+        }
+        
+        td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #dee2e6;
+            vertical-align: top;
+        }
+        
+        tr.added {
+            background: #d4edda;
+        }
+        
+        tr.deleted {
+            background: #f8d7da;
+        }
+        
+        tr.modified {
+            background: #fff3cd;
+        }
+        
+        .diff-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .diff-badge.added {
+            background: #28a745;
+            color: white;
+        }
+        
+        .diff-badge.deleted {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .diff-badge.modified {
+            background: #ffc107;
+            color: #212529;
+        }
+        
+        .field-change {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .old-value {
+            color: #dc3545;
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+        
+        .new-value {
+            color: #28a745;
+            font-weight: 500;
+        }
+        
+        .no-change {
+            color: #6c757d;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 50px;
+        }
+        
+        .loading.active {
+            display: block;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 50px;
+            color: #6c757d;
+        }
+        
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            padding: 20px 30px 0;
+            background: white;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-bottom: none;
+            border-radius: 5px 5px 0 0;
+            cursor: pointer;
+            font-weight: 500;
+            color: #6c757d;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            background: white;
+            color: #212529;
+            border-bottom: 1px solid white;
+            margin-bottom: -1px;
+        }
+        
+        .tab-content {
+            display: none;
+            background: white;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .export-button {
+            margin-left: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+            }
+            
+            .file-upload-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .summary-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            table {
+                font-size: 12px;
+            }
+            
+            th, td {
+                padding: 8px 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 全銀データ差分チェッカー</h1>
+            <p>総合振込データの変更箇所を比較・確認</p>
+        </div>
+        
+        <div class="navigation">
+            <a href="index.html">📝 エディタに戻る</a>
+        </div>
+        
+        <div class="file-upload-section">
+            <div class="file-upload-card" id="originalCard">
+                <h3>📁 修正前（オリジナル）</h3>
+                <div class="file-input-wrapper">
+                    <input type="file" id="originalFile" accept=".txt">
+                    <label for="originalFile" class="file-input-label original">ファイルを選択</label>
+                </div>
+                <div class="file-info" id="originalInfo">
+                    <p><strong>ファイル名:</strong> <span id="originalFileName">-</span></p>
+                    <p><strong>振込日:</strong> <span id="originalDate">-</span></p>
+                    <p><strong>件数:</strong> <span id="originalCount">-</span></p>
+                    <p><strong>合計金額:</strong> <span id="originalAmount">-</span></p>
+                </div>
+            </div>
+            
+            <div class="file-upload-card" id="modifiedCard">
+                <h3>📝 修正後</h3>
+                <div class="file-input-wrapper">
+                    <input type="file" id="modifiedFile" accept=".txt">
+                    <label for="modifiedFile" class="file-input-label modified">ファイルを選択</label>
+                </div>
+                <div class="file-info" id="modifiedInfo">
+                    <p><strong>ファイル名:</strong> <span id="modifiedFileName">-</span></p>
+                    <p><strong>振込日:</strong> <span id="modifiedDate">-</span></p>
+                    <p><strong>件数:</strong> <span id="modifiedCount">-</span></p>
+                    <p><strong>合計金額:</strong> <span id="modifiedAmount">-</span></p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="compare-controls">
+            <button class="btn-primary" id="compareButton" onclick="compareFiles()" disabled>
+                🔍 差分をチェック
+            </button>
+            <button class="btn-success export-button" id="exportButton" onclick="exportDiffReport()" style="display: none;">
+                📄 レポート出力
+            </button>
+        </div>
+        
+        <div class="diff-summary" id="diffSummary">
+            <h2>📊 差分サマリー</h2>
+            <div class="summary-grid">
+                <div class="summary-card added">
+                    <h4>追加</h4>
+                    <div class="number" id="addedCount">0</div>
+                </div>
+                <div class="summary-card modified">
+                    <h4>変更</h4>
+                    <div class="number" id="modifiedCount">0</div>
+                </div>
+                <div class="summary-card deleted">
+                    <h4>削除</h4>
+                    <div class="number" id="deletedCount">0</div>
+                </div>
+                <div class="summary-card unchanged">
+                    <h4>変更なし</h4>
+                    <div class="number" id="unchangedCount">0</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>差分を解析中...</p>
+        </div>
+        
+        <div class="tabs" id="diffTabs" style="display: none;">
+            <div class="tab active" onclick="switchTab('header')">ヘッダー情報</div>
+            <div class="tab" onclick="switchTab('added')">追加レコード</div>
+            <div class="tab" onclick="switchTab('modified')">変更レコード</div>
+            <div class="tab" onclick="switchTab('deleted')">削除レコード</div>
+            <div class="tab" onclick="switchTab('all')">全レコード</div>
+        </div>
+        
+        <div class="diff-results" id="diffResults">
+            <!-- ヘッダー情報タブ -->
+            <div class="tab-content active" id="headerTab">
+                <div class="diff-section">
+                    <h3>ヘッダー情報の変更</h3>
+                    <div class="diff-table">
+                        <table id="headerDiffTable">
+                            <thead>
+                                <tr>
+                                    <th>項目</th>
+                                    <th>修正前</th>
+                                    <th>修正後</th>
+                                    <th>状態</th>
+                                </tr>
+                            </thead>
+                            <tbody id="headerDiffBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 追加レコードタブ -->
+            <div class="tab-content" id="addedTab">
+                <div class="diff-section">
+                    <h3>追加されたレコード</h3>
+                    <div class="diff-table">
+                        <table id="addedTable">
+                            <thead>
+                                <tr>
+                                    <th>No.</th>
+                                    <th>銀行コード</th>
+                                    <th>銀行名</th>
+                                    <th>支店コード</th>
+                                    <th>支店名</th>
+                                    <th>預金種目</th>
+                                    <th>口座番号</th>
+                                    <th>受取人名</th>
+                                    <th>振込金額</th>
+                                </tr>
+                            </thead>
+                            <tbody id="addedBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 変更レコードタブ -->
+            <div class="tab-content" id="modifiedTab">
+                <div class="diff-section">
+                    <h3>変更されたレコード</h3>
+                    <div class="diff-table">
+                        <table id="modifiedTable">
+                            <thead>
+                                <tr>
+                                    <th>No.</th>
+                                    <th>銀行コード</th>
+                                    <th>銀行名</th>
+                                    <th>支店コード</th>
+                                    <th>支店名</th>
+                                    <th>預金種目</th>
+                                    <th>口座番号</th>
+                                    <th>受取人名</th>
+                                    <th>振込金額</th>
+                                    <th>変更内容</th>
+                                </tr>
+                            </thead>
+                            <tbody id="modifiedBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 削除レコードタブ -->
+            <div class="tab-content" id="deletedTab">
+                <div class="diff-section">
+                    <h3>削除されたレコード</h3>
+                    <div class="diff-table">
+                        <table id="deletedTable">
+                            <thead>
+                                <tr>
+                                    <th>No.</th>
+                                    <th>銀行コード</th>
+                                    <th>銀行名</th>
+                                    <th>支店コード</th>
+                                    <th>支店名</th>
+                                    <th>預金種目</th>
+                                    <th>口座番号</th>
+                                    <th>受取人名</th>
+                                    <th>振込金額</th>
+                                </tr>
+                            </thead>
+                            <tbody id="deletedBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 全レコードタブ -->
+            <div class="tab-content" id="allTab">
+                <div class="diff-section">
+                    <h3>全レコード比較</h3>
+                    <div class="diff-table">
+                        <table id="allTable">
+                            <thead>
+                                <tr>
+                                    <th>No.</th>
+                                    <th>状態</th>
+                                    <th>銀行コード</th>
+                                    <th>銀行名</th>
+                                    <th>支店コード</th>
+                                    <th>支店名</th>
+                                    <th>預金種目</th>
+                                    <th>口座番号</th>
+                                    <th>受取人名</th>
+                                    <th>振込金額</th>
+                                </tr>
+                            </thead>
+                            <tbody id="allBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let originalData = null;
+        let modifiedData = null;
+        let diffResults = null;
+        
+        // Shift-JISデコーダー
+        const sjisDecoder = new TextDecoder('shift-jis');
+        
+        // 預金種目マスタ
+        const depositTypes = {
+            '1': '普通',
+            '2': '当座',
+            '4': '貯蓄',
+            '9': 'その他'
+        };
+        
+        // オリジナルファイル読み込み
+        document.getElementById('originalFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const arrayBuffer = e.target.result;
+                const uint8Array = new Uint8Array(arrayBuffer);
+                const text = sjisDecoder.decode(uint8Array);
+                
+                originalData = parseZenginData(text);
+                displayFileInfo('original', file.name, originalData);
+                checkCompareReady();
+            };
+            reader.readAsArrayBuffer(file);
+        });
+        
+        // 修正後ファイル読み込み
+        document.getElementById('modifiedFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const arrayBuffer = e.target.result;
+                const uint8Array = new Uint8Array(arrayBuffer);
+                const text = sjisDecoder.decode(uint8Array);
+                
+                modifiedData = parseZenginData(text);
+                displayFileInfo('modified', file.name, modifiedData);
+                checkCompareReady();
+            };
+            reader.readAsArrayBuffer(file);
+        });
+        
+        // 全銀データのパース
+        function parseZenginData(text) {
+            const lines = text.split(/\r\n|\n|\r/);
+            const data = {
+                header: null,
+                records: [],
+                trailer: null,
+                endRecord: null
+            };
+            
+            lines.forEach(line => {
+                if (!line || line.length === 0) return;
+                
+                const recordType = line.charAt(0);
+                
+                switch(recordType) {
+                    case '1':
+                        data.header = parseHeaderRecord(line);
+                        break;
+                    case '2':
+                        data.records.push(parseDataRecord(line));
+                        break;
+                    case '8':
+                        data.trailer = parseTrailerRecord(line);
+                        break;
+                    case '9':
+                        data.endRecord = line;
+                        break;
+                }
+            });
+            
+            return data;
+        }
+        
+        // ヘッダーレコードのパース
+        function parseHeaderRecord(line) {
+            return {
+                dataType: line.substr(0, 1),
+                typeCode: line.substr(1, 2),
+                codeType: line.substr(3, 1),
+                companyCode: line.substr(4, 10),
+                companyName: line.substr(14, 40).trim(),
+                transferDate: line.substr(54, 4),
+                bankCode: line.substr(58, 4),
+                bankName: line.substr(62, 15).trim(),
+                branchCode: line.substr(77, 3),
+                branchName: line.substr(80, 15).trim(),
+                depositType: line.substr(95, 1),
+                accountNumber: line.substr(96, 7),
+                dummy: line.substr(103, 17)
+            };
+        }
+        
+        // データレコードのパース
+        function parseDataRecord(line) {
+            return {
+                dataType: line.substr(0, 1),
+                bankCode: line.substr(1, 4),
+                bankName: line.substr(5, 15).trim(),
+                branchCode: line.substr(20, 3),
+                branchName: line.substr(23, 15).trim(),
+                clearingHouseCode: line.substr(38, 4),
+                depositType: line.substr(42, 1),
+                accountNumber: line.substr(43, 7),
+                recipientName: line.substr(50, 30).trim(),
+                amount: line.substr(80, 10),
+                newCode: line.substr(90, 1),
+                customerCode1: line.substr(91, 10),
+                customerCode2: line.substr(101, 10),
+                transferType: line.substr(111, 1),
+                ediFlag: line.substr(112, 1),
+                dummy: line.substr(113, 7)
+            };
+        }
+        
+        // トレーラレコードのパース
+        function parseTrailerRecord(line) {
+            return {
+                dataType: line.substr(0, 1),
+                totalCount: line.substr(1, 6),
+                totalAmount: line.substr(7, 12),
+                dummy: line.substr(19, 101)
+            };
+        }
+        
+        // ファイル情報表示
+        function displayFileInfo(type, filename, data) {
+            const card = document.getElementById(`${type}Card`);
+            const info = document.getElementById(`${type}Info`);
+            
+            card.classList.add('has-file');
+            info.classList.add('show');
+            
+            document.getElementById(`${type}FileName`).textContent = filename;
+            
+            if (data.header) {
+                const date = data.header.transferDate;
+                document.getElementById(`${type}Date`).textContent = 
+                    `${date.substr(0, 2)}月${date.substr(2, 2)}日`;
+            }
+            
+            document.getElementById(`${type}Count`).textContent = 
+                `${data.records.length}件`;
+            
+            const totalAmount = data.records.reduce((sum, record) => {
+                return sum + parseInt(record.amount);
+            }, 0);
+            document.getElementById(`${type}Amount`).textContent = 
+                `¥${totalAmount.toLocaleString()}`;
+        }
+        
+        // 比較準備チェック
+        function checkCompareReady() {
+            const button = document.getElementById('compareButton');
+            if (originalData && modifiedData) {
+                button.disabled = false;
+            } else {
+                button.disabled = true;
+            }
+        }
+        
+        // ファイル比較
+        function compareFiles() {
+            if (!originalData || !modifiedData) {
+                alert('両方のファイルを選択してください');
+                return;
+            }
+            
+            showLoading();
+            
+            // 差分解析
+            setTimeout(() => {
+                diffResults = analyzeDifferences();
+                displayDiffResults();
+                hideLoading();
+            }, 100);
+        }
+        
+        // 差分解析
+        function analyzeDifferences() {
+            const results = {
+                header: compareHeaders(),
+                added: [],
+                modified: [],
+                deleted: [],
+                unchanged: []
+            };
+            
+            // レコードの比較用キー生成（銀行コード+支店コード+口座番号+受取人名）
+            const getRecordKey = (record) => {
+                return `${record.bankCode}_${record.branchCode}_${record.accountNumber}_${record.recipientName}`;
+            };
+            
+            // オリジナルレコードのマップ作成
+            const originalMap = new Map();
+            originalData.records.forEach((record, index) => {
+                const key = getRecordKey(record);
+                originalMap.set(key, { record, index });
+            });
+            
+            // 修正後レコードのマップ作成
+            const modifiedMap = new Map();
+            modifiedData.records.forEach((record, index) => {
+                const key = getRecordKey(record);
+                modifiedMap.set(key, { record, index });
+            });
+            
+            // 修正後レコードをチェック
+            modifiedData.records.forEach((modRecord, modIndex) => {
+                const key = getRecordKey(modRecord);
+                const original = originalMap.get(key);
+                
+                if (!original) {
+                    // 追加されたレコード
+                    results.added.push({
+                        index: modIndex + 1,
+                        record: modRecord
+                    });
+                } else {
+                    // 変更チェック
+                    const changes = compareRecords(original.record, modRecord);
+                    if (changes.length > 0) {
+                        results.modified.push({
+                            originalIndex: original.index + 1,
+                            modifiedIndex: modIndex + 1,
+                            original: original.record,
+                            modified: modRecord,
+                            changes: changes
+                        });
+                    } else {
+                        results.unchanged.push({
+                            index: modIndex + 1,
+                            record: modRecord
+                        });
+                    }
+                }
+            });
+            
+            // 削除されたレコードをチェック
+            originalData.records.forEach((origRecord, origIndex) => {
+                const key = getRecordKey(origRecord);
+                if (!modifiedMap.has(key)) {
+                    results.deleted.push({
+                        index: origIndex + 1,
+                        record: origRecord
+                    });
+                }
+            });
+            
+            return results;
+        }
+        
+        // ヘッダー比較
+        function compareHeaders() {
+            const changes = [];
+            const original = originalData.header;
+            const modified = modifiedData.header;
+            
+            const fields = [
+                { key: 'transferDate', name: '振込指定日', format: formatDate },
+                { key: 'companyCode', name: '会社コード' },
+                { key: 'companyName', name: '会社名' },
+                { key: 'bankCode', name: '仕向銀行コード' },
+                { key: 'bankName', name: '仕向銀行名' },
+                { key: 'branchCode', name: '仕向支店コード' },
+                { key: 'branchName', name: '仕向支店名' },
+                { key: 'depositType', name: '預金種目', format: formatDepositType },
+                { key: 'accountNumber', name: '口座番号' }
+            ];
+            
+            fields.forEach(field => {
+                const origValue = original[field.key];
+                const modValue = modified[field.key];
+                
+                if (origValue !== modValue) {
+                    changes.push({
+                        field: field.name,
+                        original: field.format ? field.format(origValue) : origValue,
+                        modified: field.format ? field.format(modValue) : modValue
+                    });
+                }
+            });
+            
+            return changes;
+        }
+        
+        // レコード比較
+        function compareRecords(original, modified) {
+            const changes = [];
+            
+            const fields = [
+                { key: 'bankCode', name: '銀行コード' },
+                { key: 'bankName', name: '銀行名' },
+                { key: 'branchCode', name: '支店コード' },
+                { key: 'branchName', name: '支店名' },
+                { key: 'depositType', name: '預金種目' },
+                { key: 'accountNumber', name: '口座番号' },
+                { key: 'recipientName', name: '受取人名' },
+                { key: 'amount', name: '振込金額' },
+                { key: 'customerCode1', name: '顧客コード1' },
+                { key: 'customerCode2', name: '顧客コード2' }
+            ];
+            
+            fields.forEach(field => {
+                if (original[field.key] !== modified[field.key]) {
+                    changes.push({
+                        field: field.name,
+                        original: original[field.key],
+                        modified: modified[field.key]
+                    });
+                }
+            });
+            
+            return changes;
+        }
+        
+        // 日付フォーマット
+        function formatDate(date) {
+            if (!date || date.length !== 4) return date;
+            return `${date.substr(0, 2)}月${date.substr(2, 2)}日`;
+        }
+        
+        // 預金種目フォーマット
+        function formatDepositType(type) {
+            return depositTypes[type] || type;
+        }
+        
+        // 差分結果表示
+        function displayDiffResults() {
+            // サマリー表示
+            document.getElementById('diffSummary').classList.add('show');
+            document.getElementById('addedCount').textContent = diffResults.added.length;
+            document.getElementById('modifiedCount').textContent = diffResults.modified.length;
+            document.getElementById('deletedCount').textContent = diffResults.deleted.length;
+            document.getElementById('unchangedCount').textContent = diffResults.unchanged.length;
+            
+            // タブ表示
+            document.getElementById('diffTabs').style.display = 'flex';
+            document.getElementById('diffResults').classList.add('show');
+            
+            // ヘッダー差分表示
+            displayHeaderDiff();
+            
+            // 各テーブル表示
+            displayAddedRecords();
+            displayModifiedRecords();
+            displayDeletedRecords();
+            displayAllRecords();
+            
+            // エクスポートボタン表示
+            document.getElementById('exportButton').style.display = 'inline-block';
+        }
+        
+        // ヘッダー差分表示
+        function displayHeaderDiff() {
+            const tbody = document.getElementById('headerDiffBody');
+            tbody.innerHTML = '';
+            
+            const allFields = [
+                { key: 'transferDate', name: '振込指定日', format: formatDate },
+                { key: 'companyCode', name: '会社コード' },
+                { key: 'companyName', name: '会社名' },
+                { key: 'bankCode', name: '仕向銀行コード' },
+                { key: 'bankName', name: '仕向銀行名' },
+                { key: 'branchCode', name: '仕向支店コード' },
+                { key: 'branchName', name: '仕向支店名' },
+                { key: 'depositType', name: '預金種目', format: formatDepositType },
+                { key: 'accountNumber', name: '口座番号' }
+            ];
+            
+            allFields.forEach(field => {
+                const origValue = originalData.header[field.key];
+                const modValue = modifiedData.header[field.key];
+                const isChanged = origValue !== modValue;
+                
+                const row = document.createElement('tr');
+                if (isChanged) row.className = 'modified';
+                
+                const origDisplay = field.format ? field.format(origValue) : origValue;
+                const modDisplay = field.format ? field.format(modValue) : modValue;
+                
+                row.innerHTML = `
+                    <td>${field.name}</td>
+                    <td class="${isChanged ? 'old-value' : ''}">${origDisplay || '-'}</td>
+                    <td class="${isChanged ? 'new-value' : ''}">${modDisplay || '-'}</td>
+                    <td>
+                        ${isChanged ? '<span class="diff-badge modified">変更</span>' : '<span class="no-change">-</span>'}
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        // 追加レコード表示
+        function displayAddedRecords() {
+            const tbody = document.getElementById('addedBody');
+            tbody.innerHTML = '';
+            
+            if (diffResults.added.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #6c757d;">追加されたレコードはありません</td></tr>';
+                return;
+            }
+            
+            diffResults.added.forEach(item => {
+                const record = item.record;
+                const row = document.createElement('tr');
+                row.className = 'added';
+                
+                row.innerHTML = `
+                    <td>${item.index}</td>
+                    <td>${record.bankCode}</td>
+                    <td>${record.bankName}</td>
+                    <td>${record.branchCode}</td>
+                    <td>${record.branchName}</td>
+                    <td>${depositTypes[record.depositType] || record.depositType}</td>
+                    <td>${record.accountNumber}</td>
+                    <td>${record.recipientName}</td>
+                    <td>¥${parseInt(record.amount).toLocaleString()}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        // 変更レコード表示
+        function displayModifiedRecords() {
+            const tbody = document.getElementById('modifiedBody');
+            tbody.innerHTML = '';
+            
+            if (diffResults.modified.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: #6c757d;">変更されたレコードはありません</td></tr>';
+                return;
+            }
+            
+            diffResults.modified.forEach(item => {
+                const record = item.modified;
+                const row = document.createElement('tr');
+                row.className = 'modified';
+                
+                // 変更内容のサマリー作成
+                const changesSummary = item.changes.map(change => {
+                    return `${change.field}: ${change.original} → ${change.modified}`;
+                }).join('<br>');
+                
+                row.innerHTML = `
+                    <td>${item.modifiedIndex}</td>
+                    <td>${createFieldDiff(item.original.bankCode, record.bankCode)}</td>
+                    <td>${createFieldDiff(item.original.bankName, record.bankName)}</td>
+                    <td>${createFieldDiff(item.original.branchCode, record.branchCode)}</td>
+                    <td>${createFieldDiff(item.original.branchName, record.branchName)}</td>
+                    <td>${createFieldDiff(
+                        depositTypes[item.original.depositType] || item.original.depositType,
+                        depositTypes[record.depositType] || record.depositType
+                    )}</td>
+                    <td>${createFieldDiff(item.original.accountNumber, record.accountNumber)}</td>
+                    <td>${createFieldDiff(item.original.recipientName, record.recipientName)}</td>
+                    <td>${createFieldDiff(
+                        '¥' + parseInt(item.original.amount).toLocaleString(),
+                        '¥' + parseInt(record.amount).toLocaleString()
+                    )}</td>
+                    <td style="font-size: 12px;">${changesSummary}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        // フィールド差分表示
+        function createFieldDiff(original, modified) {
+            if (original === modified) {
+                return `<span class="no-change">${original}</span>`;
+            }
+            return `
+                <div class="field-change">
+                    <span class="old-value">${original}</span>
+                    <span class="new-value">${modified}</span>
+                </div>
+            `;
+        }
+        
+        // 削除レコード表示
+        function displayDeletedRecords() {
+            const tbody = document.getElementById('deletedBody');
+            tbody.innerHTML = '';
+            
+            if (diffResults.deleted.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #6c757d;">削除されたレコードはありません</td></tr>';
+                return;
+            }
+            
+            diffResults.deleted.forEach(item => {
+                const record = item.record;
+                const row = document.createElement('tr');
+                row.className = 'deleted';
+                
+                row.innerHTML = `
+                    <td>${item.index}</td>
+                    <td>${record.bankCode}</td>
+                    <td>${record.bankName}</td>
+                    <td>${record.branchCode}</td>
+                    <td>${record.branchName}</td>
+                    <td>${depositTypes[record.depositType] || record.depositType}</td>
+                    <td>${record.accountNumber}</td>
+                    <td>${record.recipientName}</td>
+                    <td>¥${parseInt(record.amount).toLocaleString()}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        // 全レコード表示
+        function displayAllRecords() {
+            const tbody = document.getElementById('allBody');
+            tbody.innerHTML = '';
+            
+            // 全レコードを順番に並べる
+            const allRecords = [];
+            
+            // 修正後のレコードベースで表示
+            modifiedData.records.forEach((record, index) => {
+                const recordIndex = index + 1;
+                
+                // 該当するdiff結果を探す
+                let status = 'unchanged';
+                let badge = '';
+                
+                if (diffResults.added.find(item => item.index === recordIndex)) {
+                    status = 'added';
+                    badge = '<span class="diff-badge added">追加</span>';
+                } else if (diffResults.modified.find(item => item.modifiedIndex === recordIndex)) {
+                    status = 'modified';
+                    badge = '<span class="diff-badge modified">変更</span>';
+                } else {
+                    badge = '<span class="no-change">-</span>';
+                }
+                
+                allRecords.push({
+                    index: recordIndex,
+                    status: status,
+                    badge: badge,
+                    record: record
+                });
+            });
+            
+            // 削除されたレコードも追加
+            diffResults.deleted.forEach(item => {
+                allRecords.push({
+                    index: item.index,
+                    status: 'deleted',
+                    badge: '<span class="diff-badge deleted">削除</span>',
+                    record: item.record
+                });
+            });
+            
+            // インデックスでソート
+            allRecords.sort((a, b) => a.index - b.index);
+            
+            // 表示
+            allRecords.forEach(item => {
+                const row = document.createElement('tr');
+                row.className = item.status;
+                
+                row.innerHTML = `
+                    <td>${item.index}</td>
+                    <td>${item.badge}</td>
+                    <td>${item.record.bankCode}</td>
+                    <td>${item.record.bankName}</td>
+                    <td>${item.record.branchCode}</td>
+                    <td>${item.record.branchName}</td>
+                    <td>${depositTypes[item.record.depositType] || item.record.depositType}</td>
+                    <td>${item.record.accountNumber}</td>
+                    <td>${item.record.recipientName}</td>
+                    <td>¥${parseInt(item.record.amount).toLocaleString()}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        // タブ切り替え
+        function switchTab(tabName) {
+            // タブボタンのアクティブ状態変更
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // タブコンテンツの表示切り替え
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(`${tabName}Tab`).classList.add('active');
+        }
+        
+        // レポート出力
+        function exportDiffReport() {
+            if (!diffResults) return;
+            
+            let report = '全銀データ差分レポート\n';
+            report += '=' .repeat(50) + '\n\n';
+            
+            // ファイル情報
+            report += '【ファイル情報】\n';
+            report += `修正前: ${document.getElementById('originalFileName').textContent}\n`;
+            report += `修正後: ${document.getElementById('modifiedFileName').textContent}\n`;
+            report += `比較日時: ${new Date().toLocaleString('ja-JP')}\n\n`;
+            
+            // サマリー
+            report += '【差分サマリー】\n';
+            report += `追加: ${diffResults.added.length}件\n`;
+            report += `変更: ${diffResults.modified.length}件\n`;
+            report += `削除: ${diffResults.deleted.length}件\n`;
+            report += `変更なし: ${diffResults.unchanged.length}件\n\n`;
+            
+            // ヘッダー変更
+            if (diffResults.header.length > 0) {
+                report += '【ヘッダー情報の変更】\n';
+                diffResults.header.forEach(change => {
+                    report += `${change.field}: ${change.original} → ${change.modified}\n`;
+                });
+                report += '\n';
+            }
+            
+            // 追加レコード
+            if (diffResults.added.length > 0) {
+                report += '【追加レコード】\n';
+                diffResults.added.forEach(item => {
+                    const r = item.record;
+                    report += `${item.index}: ${r.bankCode} ${r.bankName} ${r.branchCode} ${r.recipientName} ¥${parseInt(r.amount).toLocaleString()}\n`;
+                });
+                report += '\n';
+            }
+            
+            // 変更レコード
+            if (diffResults.modified.length > 0) {
+                report += '【変更レコード】\n';
+                diffResults.modified.forEach(item => {
+                    report += `レコード${item.modifiedIndex}:\n`;
+                    item.changes.forEach(change => {
+                        report += `  ${change.field}: ${change.original} → ${change.modified}\n`;
+                    });
+                });
+                report += '\n';
+            }
+            
+            // 削除レコード
+            if (diffResults.deleted.length > 0) {
+                report += '【削除レコード】\n';
+                diffResults.deleted.forEach(item => {
+                    const r = item.record;
+                    report += `${item.index}: ${r.bankCode} ${r.bankName} ${r.branchCode} ${r.recipientName} ¥${parseInt(r.amount).toLocaleString()}\n`;
+                });
+            }
+            
+            // ダウンロード
+            const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `zengin_diff_report_${new Date().getTime()}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        // ローディング表示
+        function showLoading() {
+            document.getElementById('loading').classList.add('active');
+        }
+        
+        // ローディング非表示
+        function hideLoading() {
+            document.getElementById('loading').classList.remove('active');
+        }
+    </script>
+</body>
+</html>
