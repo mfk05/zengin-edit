@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全銀データエディタ - 総合振込</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            left: -9999px;
+        }
+        
+        .file-input-label {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #28a745;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-weight: 500;
+        }
+        
+        .file-input-label:hover {
+            background: #218838;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+        
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+        
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 20px 30px;
+            background: #f8f9fa;
+        }
+        
+        .summary-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .summary-card h3 {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+        
+        .summary-card p {
+            font-size: 1.2em;
+            color: #212529;
+            font-weight: 600;
+        }
+        
+        .data-section {
+            padding: 20px 30px;
+        }
+        
+        .data-table {
+            width: 100%;
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        
+        thead {
+            background: #f8f9fa;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        th {
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+            white-space: nowrap;
+        }
+        
+        td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        td input {
+            width: 100%;
+            padding: 5px;
+            border: 1px solid #ced4da;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+        
+        td input:focus {
+            outline: none;
+            border-color: #80bdff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+        
+        td input.error {
+            border-color: #dc3545;
+            background: #fff5f5;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .row-actions {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .row-actions button {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        
+        .validation-error {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 2px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+        
+        .modal.active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            margin-bottom: 20px;
+        }
+        
+        .modal-header h2 {
+            color: #212529;
+        }
+        
+        .modal-body {
+            margin-bottom: 20px;
+        }
+        
+        .validation-report {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .validation-item {
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 3px;
+        }
+        
+        .validation-item.error {
+            background: #fff5f5;
+            border-left: 3px solid #dc3545;
+        }
+        
+        .validation-item.warning {
+            background: #fff8e1;
+            border-left: 3px solid #ffc107;
+        }
+        
+        .validation-item.success {
+            background: #f1f8f4;
+            border-left: 3px solid #28a745;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 50px;
+        }
+        
+        .loading.active {
+            display: block;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 50px;
+            color: #6c757d;
+        }
+        
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .controls button {
+                width: 100%;
+            }
+            
+            table {
+                font-size: 12px;
+            }
+            
+            th, td {
+                padding: 8px 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏦 全銀データエディタ</h1>
+            <p>総合振込データの編集・管理ツール</p>
+        </div>
+        
+        <div class="controls">
+            <div>
+                <div class="file-input-wrapper">
+                    <input type="file" id="fileInput" accept=".txt">
+                    <label for="fileInput" class="file-input-label">📁 ファイルを選択</label>
+                </div>
+            </div>
+            <div>
+                <button class="btn-primary" onclick="addRecord()">➕ レコード追加</button>
+                <button class="btn-warning" onclick="validateAll()">✔️ 検証</button>
+                <button class="btn-success" onclick="downloadFile()">💾 ダウンロード</button>
+            </div>
+        </div>
+        
+        <div class="summary" id="summary" style="display: none;">
+            <div class="summary-card">
+                <h3>振込指定日</h3>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="text" id="transferDateInput" maxlength="4" pattern="[0-9]{4}" style="width: 60px; padding: 5px; border: 1px solid #ced4da; border-radius: 3px; font-size: 16px; font-weight: 600;">
+                    <span style="font-size: 14px; color: #6c757d;">(MMDD)</span>
+                </div>
+            </div>
+            <div class="summary-card">
+                <h3>振込件数</h3>
+                <p id="summaryCount">0件</p>
+            </div>
+            <div class="summary-card">
+                <h3>振込金額合計</h3>
+                <p id="summaryAmount">¥0</p>
+            </div>
+            <div class="summary-card">
+                <h3>依頼人名</h3>
+                <p id="summaryCompany">-</p>
+            </div>
+        </div>
+        
+        <div class="data-section">
+            <div class="empty-state" id="emptyState">
+                <i>📂</i>
+                <h2>データが読み込まれていません</h2>
+                <p>全銀データファイル（.txt）を選択してください</p>
+            </div>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>処理中...</p>
+            </div>
+            
+            <div class="data-table" id="dataTable" style="display: none;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>No.</th>
+                            <th>銀行コード</th>
+                            <th>銀行名</th>
+                            <th>支店コード</th>
+                            <th>支店名</th>
+                            <th>預金種目</th>
+                            <th>口座番号</th>
+                            <th>受取人名</th>
+                            <th>振込金額</th>
+                            <th>顧客コード1</th>
+                            <th>顧客コード2</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="validationModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>検証結果</h2>
+            </div>
+            <div class="modal-body">
+                <div class="validation-report" id="validationReport">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" onclick="closeValidationModal()">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let zenginData = {
+            header: null,
+            records: [],
+            trailer: null,
+            endRecord: null
+        };
+
+        // 銀行コードマスタ（主要銀行のみ）
+        const bankMaster = {
+            '0001': 'みずほ',
+            '0005': '三菱UFJ',
+            '0009': '三井住友',
+            '0010': 'りそな',
+            '0017': '埼玉りそな',
+            '0033': 'ジャパンネット',
+            '0034': 'セブン銀行',
+            '0036': '楽天',
+            '0038': '住信SBIネット',
+            '0039': 'auじぶん',
+            '0040': 'イオン',
+            '0041': '大和ネクスト',
+            '0042': 'ローソン',
+            '0138': '横浜',
+            '0149': '静岡',
+            '0150': '新生',
+            '0169': '京葉',
+            '0501': '北洋'
+        };
+
+        // 預金種目マスタ
+        const depositTypes = {
+            '1': '普通',
+            '2': '当座',
+            '4': '貯蓄',
+            '9': 'その他'
+        };
+
+        // Shift-JISエンコード/デコード用
+        const sjisDecoder = new TextDecoder('shift-jis');
+        const sjisEncoder = new TextEncoder();
+
+        // ファイル読み込み
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            showLoading();
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const arrayBuffer = e.target.result;
+                const uint8Array = new Uint8Array(arrayBuffer);
+                const text = sjisDecoder.decode(uint8Array);
+                
+                parseZenginData(text);
+                hideLoading();
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        // 全銀データのパース
+        function parseZenginData(text) {
+            const lines = text.split(/\r\n|\n|\r/);
+            zenginData = {
+                header: null,
+                records: [],
+                trailer: null,
+                endRecord: null
+            };
+            
+            lines.forEach(line => {
+                if (!line || line.length === 0) return;
+                
+                const recordType = line.charAt(0);
+                
+                switch(recordType) {
+                    case '1':
+                        zenginData.header = parseHeaderRecord(line);
+                        break;
+                    case '2':
+                        zenginData.records.push(parseDataRecord(line));
+                        break;
+                    case '8':
+                        zenginData.trailer = parseTrailerRecord(line);
+                        break;
+                    case '9':
+                        zenginData.endRecord = line;
+                        break;
+                }
+            });
+            
+            displayData();
+        }
+
+        // ヘッダーレコードのパース
+        function parseHeaderRecord(line) {
+            return {
+                dataType: line.substr(0, 1),
+                typeCode: line.substr(1, 2),
+                codeType: line.substr(3, 1),
+                companyCode: line.substr(4, 10),
+                companyName: line.substr(14, 40).trim(),
+                transferDate: line.substr(54, 4),
+                bankCode: line.substr(58, 4),
+                bankName: line.substr(62, 15).trim(),
+                branchCode: line.substr(77, 3),
+                branchName: line.substr(80, 15).trim(),
+                depositType: line.substr(95, 1),
+                accountNumber: line.substr(96, 7),
+                dummy: line.substr(103, 17)
+            };
+        }
+
+        // データレコードのパース
+        function parseDataRecord(line) {
+            return {
+                dataType: line.substr(0, 1),
+                bankCode: line.substr(1, 4),
+                bankName: line.substr(5, 15).trim(),
+                branchCode: line.substr(20, 3),
+                branchName: line.substr(23, 15).trim(),
+                clearingHouseCode: line.substr(38, 4),
+                depositType: line.substr(42, 1),
+                accountNumber: line.substr(43, 7),
+                recipientName: line.substr(50, 30).trim(),
+                amount: line.substr(80, 10),
+                newCode: line.substr(90, 1),
+                customerCode1: line.substr(91, 10),
+                customerCode2: line.substr(101, 10),
+                transferType: line.substr(111, 1),
+                ediFlag: line.substr(112, 1),
+                dummy: line.substr(113, 7)
+            };
+        }
+
+        // トレーラレコードのパース
+        function parseTrailerRecord(line) {
+            return {
+                dataType: line.substr(0, 1),
+                totalCount: line.substr(1, 6),
+                totalAmount: line.substr(7, 12),
+                dummy: line.substr(19, 101)
+            };
+        }
+
+        // データの表示
+        function displayData() {
+            if (!zenginData.header) {
+                document.getElementById('emptyState').style.display = 'block';
+                document.getElementById('dataTable').style.display = 'none';
+                document.getElementById('summary').style.display = 'none';
+                return;
+            }
+            
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('dataTable').style.display = 'block';
+            document.getElementById('summary').style.display = 'grid';
+            
+            // サマリー更新
+            updateSummary();
+            
+            // テーブル表示
+            const tbody = document.getElementById('dataTableBody');
+            tbody.innerHTML = '';
+            
+            zenginData.records.forEach((record, index) => {
+                const row = createTableRow(record, index);
+                tbody.appendChild(row);
+            });
+        }
+
+        // サマリー更新
+        function updateSummary() {
+            if (!zenginData.header) return;
+            
+            // 振込指定日の表示と編集設定
+            const dateInput = document.getElementById('transferDateInput');
+            dateInput.value = zenginData.header.transferDate;
+            dateInput.onchange = function() {
+                if (/^\d{4}$/.test(this.value)) {
+                    zenginData.header.transferDate = this.value;
+                    // 月日の妥当性チェック
+                    const month = parseInt(this.value.substr(0, 2));
+                    const day = parseInt(this.value.substr(2, 2));
+                    if (month < 1 || month > 12) {
+                        this.style.borderColor = '#dc3545';
+                        alert('月は01-12の範囲で入力してください');
+                    } else if (day < 1 || day > 31) {
+                        this.style.borderColor = '#dc3545';
+                        alert('日は01-31の範囲で入力してください');
+                    } else {
+                        this.style.borderColor = '#ced4da';
+                    }
+                } else {
+                    alert('振込指定日は4桁の数字（MMDD）で入力してください');
+                    this.value = zenginData.header.transferDate;
+                }
+            };
+            
+            document.getElementById('summaryCount').textContent = `${zenginData.records.length}件`;
+            
+            const totalAmount = zenginData.records.reduce((sum, record) => {
+                return sum + parseInt(record.amount);
+            }, 0);
+            document.getElementById('summaryAmount').textContent = `¥${totalAmount.toLocaleString()}`;
+            
+            document.getElementById('summaryCompany').textContent = zenginData.header.companyName;
+        }
+
+        // テーブル行の作成
+        function createTableRow(record, index) {
+            const row = document.createElement('tr');
+            
+            row.innerHTML = `
+                <td>${index + 1}</td>
+                <td><input type="text" maxlength="4" value="${record.bankCode}" onchange="updateRecord(${index}, 'bankCode', this.value)" pattern="[0-9]{4}"></td>
+                <td><input type="text" maxlength="15" value="${record.bankName}" onchange="updateRecord(${index}, 'bankName', this.value)"></td>
+                <td><input type="text" maxlength="3" value="${record.branchCode}" onchange="updateRecord(${index}, 'branchCode', this.value)" pattern="[0-9]{3}"></td>
+                <td><input type="text" maxlength="15" value="${record.branchName}" onchange="updateRecord(${index}, 'branchName', this.value)"></td>
+                <td>
+                    <select onchange="updateRecord(${index}, 'depositType', this.value)">
+                        <option value="1" ${record.depositType === '1' ? 'selected' : ''}>普通</option>
+                        <option value="2" ${record.depositType === '2' ? 'selected' : ''}>当座</option>
+                        <option value="4" ${record.depositType === '4' ? 'selected' : ''}>貯蓄</option>
+                        <option value="9" ${record.depositType === '9' ? 'selected' : ''}>その他</option>
+                    </select>
+                </td>
+                <td><input type="text" maxlength="7" value="${record.accountNumber}" onchange="updateRecord(${index}, 'accountNumber', this.value)" pattern="[0-9]{1,7}"></td>
+                <td><input type="text" maxlength="30" value="${record.recipientName}" onchange="updateRecord(${index}, 'recipientName', this.value)"></td>
+                <td><input type="text" maxlength="10" value="${record.amount}" onchange="updateRecord(${index}, 'amount', this.value)" pattern="[0-9]{1,10}"></td>
+                <td><input type="text" maxlength="10" value="${record.customerCode1}" onchange="updateRecord(${index}, 'customerCode1', this.value)"></td>
+                <td><input type="text" maxlength="10" value="${record.customerCode2}" onchange="updateRecord(${index}, 'customerCode2', this.value)"></td>
+                <td class="row-actions">
+                    <button class="btn-danger" onclick="deleteRecord(${index})">削除</button>
+                </td>
+            `;
+            
+            return row;
+        }
+
+        // レコード更新
+        function updateRecord(index, field, value) {
+            zenginData.records[index][field] = value;
+            updateSummary();
+        }
+
+        // レコード追加
+        function addRecord() {
+            if (!zenginData.header) {
+                alert('ファイルを先に読み込んでください');
+                return;
+            }
+            
+            const newRecord = {
+                dataType: '2',
+                bankCode: '0000',
+                bankName: '',
+                branchCode: '000',
+                branchName: '',
+                clearingHouseCode: '0000',
+                depositType: '1',
+                accountNumber: '0000000',
+                recipientName: '',
+                amount: '0000000000',
+                newCode: '0',
+                customerCode1: '0000000000',
+                customerCode2: '0000000000',
+                transferType: '7',
+                ediFlag: ' ',
+                dummy: '       '
+            };
+            
+            zenginData.records.push(newRecord);
+            displayData();
+        }
+
+        // レコード削除
+        function deleteRecord(index) {
+            if (confirm(`${index + 1}番目のレコードを削除しますか？`)) {
+                zenginData.records.splice(index, 1);
+                displayData();
+            }
+        }
+
+        // バリデーション
+        function validateAll() {
+            const errors = [];
+            const warnings = [];
+            
+            // ヘッダーチェック
+            if (!zenginData.header) {
+                errors.push('ヘッダーレコードがありません');
+            } else {
+                // 振込指定日チェック
+                const transferDate = zenginData.header.transferDate;
+                if (!/^\d{4}$/.test(transferDate)) {
+                    errors.push('振込指定日の形式が不正です（MMDD形式で入力してください）');
+                } else {
+                    const month = parseInt(transferDate.substr(0, 2));
+                    const day = parseInt(transferDate.substr(2, 2));
+                    
+                    if (month < 1 || month > 12) {
+                        errors.push(`振込指定日の月が不正です（${month}月）`);
+                    }
+                    
+                    if (day < 1 || day > 31) {
+                        errors.push(`振込指定日の日が不正です（${day}日）`);
+                    } else if (month === 2 && day > 29) {
+                        errors.push(`2月${day}日は存在しません`);
+                    } else if ([4, 6, 9, 11].includes(month) && day > 30) {
+                        errors.push(`${month}月${day}日は存在しません`);
+                    }
+                }
+            }
+            
+            // データレコードチェック
+            zenginData.records.forEach((record, index) => {
+                const recordNum = index + 1;
+                
+                // 銀行コード検証
+                if (!/^\d{4}$/.test(record.bankCode)) {
+                    errors.push(`レコード${recordNum}: 銀行コードが不正です`);
+                } else if (!bankMaster[record.bankCode]) {
+                    warnings.push(`レコード${recordNum}: 銀行コード${record.bankCode}は登録されていない可能性があります`);
+                }
+                
+                // 支店コード検証
+                if (!/^\d{3}$/.test(record.branchCode)) {
+                    errors.push(`レコード${recordNum}: 支店コードが不正です`);
+                }
+                
+                // 口座番号検証
+                if (!/^\d{1,7}$/.test(record.accountNumber)) {
+                    errors.push(`レコード${recordNum}: 口座番号が不正です`);
+                }
+                
+                // 振込金額検証
+                if (!/^\d{1,10}$/.test(record.amount)) {
+                    errors.push(`レコード${recordNum}: 振込金額が不正です`);
+                }
+                
+                // 受取人名検証
+                if (!record.recipientName || record.recipientName.length === 0) {
+                    errors.push(`レコード${recordNum}: 受取人名が入力されていません`);
+                }
+                
+                // 金額チェック
+                const amount = parseInt(record.amount);
+                if (amount === 0) {
+                    warnings.push(`レコード${recordNum}: 振込金額が0円です`);
+                }
+                if (amount > 9999999999) {
+                    errors.push(`レコード${recordNum}: 振込金額が上限を超えています`);
+                }
+            });
+            
+            // 合計金額チェック
+            const calculatedTotal = zenginData.records.reduce((sum, record) => {
+                return sum + parseInt(record.amount);
+            }, 0);
+            
+            if (zenginData.trailer) {
+                const trailerTotal = parseInt(zenginData.trailer.totalAmount);
+                if (calculatedTotal !== trailerTotal) {
+                    warnings.push(`合計金額が一致しません（計算値: ${calculatedTotal}, トレーラ: ${trailerTotal}）`);
+                }
+            }
+            
+            // 結果表示
+            showValidationResult(errors, warnings);
+        }
+
+        // バリデーション結果表示
+        function showValidationResult(errors, warnings) {
+            const report = document.getElementById('validationReport');
+            report.innerHTML = '';
+            
+            if (errors.length === 0 && warnings.length === 0) {
+                report.innerHTML = '<div class="validation-item success">✅ すべての検証に合格しました</div>';
+            } else {
+                errors.forEach(error => {
+                    const item = document.createElement('div');
+                    item.className = 'validation-item error';
+                    item.textContent = '❌ ' + error;
+                    report.appendChild(item);
+                });
+                
+                warnings.forEach(warning => {
+                    const item = document.createElement('div');
+                    item.className = 'validation-item warning';
+                    item.textContent = '⚠️ ' + warning;
+                    report.appendChild(item);
+                });
+            }
+            
+            document.getElementById('validationModal').classList.add('active');
+        }
+
+        // バリデーションモーダルを閉じる
+        function closeValidationModal() {
+            document.getElementById('validationModal').classList.remove('active');
+        }
+
+        // ファイルダウンロード
+        function downloadFile() {
+            if (!zenginData.header) {
+                alert('ダウンロードするデータがありません');
+                return;
+            }
+            
+            // トレーラレコード更新
+            updateTrailerRecord();
+            
+            // 全銀フォーマットで出力
+            let output = '';
+            
+            // ヘッダーレコード
+            output += formatHeaderRecord(zenginData.header) + '\r\n';
+            
+            // データレコード
+            zenginData.records.forEach(record => {
+                output += formatDataRecord(record) + '\r\n';
+            });
+            
+            // トレーラレコード
+            output += formatTrailerRecord(zenginData.trailer) + '\r\n';
+            
+            // エンドレコード
+            output += '9' + ' '.repeat(119) + '\r\n';
+            
+            // Shift-JISに変換してダウンロード
+            downloadAsShiftJIS(output, 'zengin_edited.txt');
+        }
+
+        // トレーラレコード更新
+        function updateTrailerRecord() {
+            const totalCount = zenginData.records.length;
+            const totalAmount = zenginData.records.reduce((sum, record) => {
+                return sum + parseInt(record.amount);
+            }, 0);
+            
+            zenginData.trailer = {
+                dataType: '8',
+                totalCount: totalCount.toString().padStart(6, '0'),
+                totalAmount: totalAmount.toString().padStart(12, '0'),
+                dummy: ' '.repeat(101)
+            };
+        }
+
+        // ヘッダーレコードフォーマット
+        function formatHeaderRecord(header) {
+            let record = '';
+            record += header.dataType;
+            record += header.typeCode;
+            record += header.codeType;
+            record += header.companyCode;
+            record += padRight(header.companyName, 40);
+            record += header.transferDate;
+            record += header.bankCode;
+            record += padRight(header.bankName, 15);
+            record += header.branchCode;
+            record += padRight(header.branchName, 15);
+            record += header.depositType || '0';
+            record += (header.accountNumber || '0000000').padStart(7, '0');
+            record += ' '.repeat(17);
+            return record;
+        }
+
+        // データレコードフォーマット
+        function formatDataRecord(record) {
+            let line = '';
+            line += record.dataType;
+            line += record.bankCode.padStart(4, '0');
+            line += padRight(record.bankName, 15);
+            line += record.branchCode.padStart(3, '0');
+            line += padRight(record.branchName, 15);
+            line += (record.clearingHouseCode || '0000').padStart(4, '0');
+            line += record.depositType;
+            line += record.accountNumber.padStart(7, '0');
+            line += padRight(record.recipientName, 30);
+            line += record.amount.padStart(10, '0');
+            line += record.newCode || '0';
+            line += (record.customerCode1 || '').padStart(10, '0');
+            line += (record.customerCode2 || '').padStart(10, '0');
+            line += record.transferType || '7';
+            line += record.ediFlag || ' ';
+            line += ' '.repeat(7);
+            return line;
+        }
+
+        // トレーラレコードフォーマット
+        function formatTrailerRecord(trailer) {
+            let record = '';
+            record += trailer.dataType;
+            record += trailer.totalCount.padStart(6, '0');
+            record += trailer.totalAmount.padStart(12, '0');
+            record += ' '.repeat(101);
+            return record;
+        }
+
+        // 右側スペース埋め
+        function padRight(str, length) {
+            if (!str) str = '';
+            if (str.length > length) {
+                return str.substr(0, length);
+            }
+            return str + ' '.repeat(length - str.length);
+        }
+
+        // Shift-JISでダウンロード
+        function downloadAsShiftJIS(text, filename) {
+            // Shift-JISエンコード用のライブラリが必要
+            // ここでは簡易的にBlobでテキストファイルとして出力
+            // 実際のShift-JIS変換にはencoding.jsなどのライブラリを使用
+            
+            fetch('https://cdn.jsdelivr.net/npm/encoding-japanese@2.0.0/encoding.min.js')
+                .then(() => {
+                    // encoding.jsがロードされた場合
+                    const unicodeArray = [];
+                    for (let i = 0; i < text.length; i++) {
+                        unicodeArray.push(text.charCodeAt(i));
+                    }
+                    
+                    // Shift-JISに変換
+                    const sjisArray = Encoding.convert(unicodeArray, {
+                        to: 'SJIS',
+                        from: 'UNICODE'
+                    });
+                    
+                    const uint8Array = new Uint8Array(sjisArray);
+                    const blob = new Blob([uint8Array], { type: 'text/plain;charset=Shift_JIS' });
+                    
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                })
+                .catch(() => {
+                    // encoding.jsが使えない場合は通常のテキストとして出力
+                    const blob = new Blob([text], { type: 'text/plain;charset=Shift_JIS' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                });
+        }
+
+        // ローディング表示
+        function showLoading() {
+            document.getElementById('loading').classList.add('active');
+        }
+
+        // ローディング非表示
+        function hideLoading() {
+            document.getElementById('loading').classList.remove('active');
+        }
+        
+        // encoding.jsを動的に読み込み
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/encoding-japanese@2.0.0/encoding.min.js';
+        document.head.appendChild(script);
+    </script>
+</body>
+</html>
